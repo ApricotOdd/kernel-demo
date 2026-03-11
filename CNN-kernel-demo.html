@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KernelLab 98 - Enhanced Visual Analysis</title>
+  <style>
+    :root {
+      --bg-gray: #cfcfcf;
+      --panel-bg: #efefef;
+      --border-dark: #6b6b6b;
+      --border-mid: #9a9a9a;
+      --border-light: #ffffff;
+      --title-blue: #003c74;
+      --title-blue-2: #1b5d97;
+      --text: #111111;
+      --btn-face: #dcdcdc;
+      --input-face: #ffffff;
+      --inset-dark: #6f6f6f;
+      --separator: #8d8d8d;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--text);
+      font-family: Tahoma, Verdana, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.3;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          #cfcfcf 0px,
+          #cfcfcf 2px,
+          #d5d5d5 2px,
+          #d5d5d5 4px
+        );
+    }
+
+    .app {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 8px;
+    }
+
+    .desktop-header {
+      margin-bottom: 8px;
+      border: 1px solid var(--border-dark);
+      box-shadow: inset 1px 1px 0 var(--border-light), inset -1px -1px 0 var(--border-mid);
+      background: var(--panel-bg);
+    }
+
+    .titlebar {
+      background: linear-gradient(90deg, var(--title-blue), var(--title-blue-2));
+      color: #fff;
+      padding: 4px 8px;
+      font-weight: bold;
+      border-bottom: 1px solid #001f3d;
+      letter-spacing: 0.2px;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .desktop-header .content,
+    .window-content { padding: 8px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 8px; }
+
+    .window {
+      border: 1px solid var(--border-dark);
+      background: var(--panel-bg);
+      box-shadow: inset 1px 1px 0 var(--border-light), inset -1px -1px 0 var(--border-mid);
+    }
+
+    .controls-grid, .field { display: grid; gap: 6px; }
+    .field label { font-weight: bold; font-size: 12px; }
+
+    .sys-input, .sys-select, .sys-number, .sys-file, .sys-range {
+      width: 100%;
+      border-radius: 0;
+      font-family: Tahoma, Verdana, Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .sys-input, .sys-select, .sys-number, .sys-file {
+      background: var(--input-face);
+      color: #111;
+      border: 1px solid var(--inset-dark);
+      box-shadow: inset 1px 1px 0 #bdbdbd, inset -1px -1px 0 #ffffff;
+      padding: 4px 5px;
+      min-height: 26px;
+    }
+
+    .sys-range {
+      appearance: none;
+      background: transparent;
+      height: 20px;
+      margin: 0;
+    }
+
+    .sys-range::-webkit-slider-runnable-track {
+      height: 6px;
+      background: #d7d7d7;
+      border: 1px solid #7a7a7a;
+      box-shadow: inset 1px 1px 0 #ffffff;
+    }
+
+    .sys-range::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 16px;
+      margin-top: -6px;
+      background: #dcdcdc;
+      border: 1px solid #666;
+      box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #9a9a9a;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .sys-btn {
+      border-radius: 0;
+      border: 1px solid #666;
+      background: var(--btn-face);
+      color: #111;
+      padding: 5px 8px;
+      min-height: 28px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #9b9b9b;
+    }
+
+    .sys-btn:active {
+      box-shadow: inset 1px 1px 0 #8f8f8f, inset -1px -1px 0 #f6f6f6;
+      transform: translate(1px, 1px);
+    }
+
+    .separator {
+      height: 1px;
+      background: var(--separator);
+      border-bottom: 1px solid #fff;
+      margin: 4px 0;
+    }
+
+    .kernel-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      max-width: 240px;
+    }
+
+    .kernel-grid input {
+      text-align: center;
+      font-family: "Courier New", Consolas, monospace;
+    }
+
+    .status {
+      border: 1px solid #7b7b7b;
+      background: #e8e8e8;
+      box-shadow: inset 1px 1px 0 #fff;
+      padding: 5px 6px;
+      min-height: 28px;
+      font-size: 12px;
+    }
+
+    .triple-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .canvas-box {
+      border: 1px solid #7b7b7b;
+      background: #d9d9d9;
+      box-shadow: inset 1px 1px 0 #fff;
+      padding: 6px;
+      overflow: auto;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #7d7d7d;
+      background: #fff;
+      image-rendering: pixelated;
+    }
+
+    .label {
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+
+    .hist-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .split-controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .mono { font-family: "Courier New", Consolas, monospace; }
+
+    .insight {
+      border: 1px solid #7b7b7b;
+      background: #fff;
+      box-shadow: inset 1px 1px 0 #fff;
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .insight h4 {
+      margin: 0 0 6px;
+      font-size: 13px;
+    }
+
+    .insight ul {
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .metric {
+      border: 1px solid #7b7b7b;
+      background: #f4f4f4;
+      padding: 5px;
+      font-size: 11px;
+    }
+
+    .footnote {
+      margin-top: 5px;
+      font-size: 11px;
+      color: #2e2e2e;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .triple-grid, .hist-grid, .metric-row, .button-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="desktop-header">
+      <div class="titlebar">KernelLab</div>
+      <div class="content">
+        Welcome! This interactive demo lets you explore how different 3x3 convolution kernels affect an image. Load your own photo, select from preset filters, or create custom kernels to see real-time visualizations of the output and feature emphasis. Use the split view and histograms to analyze how each kernel transforms the image's structure and intensity distribution.
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT -->
+      <div class="stack">
+        <section class="window">
+          <div class="titlebar">Controls Panel <small>Input + Processing</small></div>
+          <div class="window-content">
+            <div class="controls-grid">
+              <div class="field">
+                <label for="imageInput">Image File</label>
+                <input id="imageInput" class="sys-file" type="file" accept="image/*" />
+              </div>
+
+              <div class="field">
+                <label for="preset">Kernel Preset</label>
+                <select id="preset" class="sys-select">
+                  <option value="identity">Identity</option>
+                  <option value="boxBlur">Box Blur</option>
+                  <option value="gaussian">Gaussian Blur</option>
+                  <option value="motionH">Motion Blur (Horizontal)</option>
+                  <option value="motionV">Motion Blur (Vertical)</option>
+                  <option value="diagBlur">Diagonal Blur</option>
+                  <option value="sharpen">Sharpen</option>
+                  <option value="strongSharpen">Strong Sharpen</option>
+                  <option value="unsharpLite">Unsharp (Lite)</option>
+                  <option value="edge4">Edge Detect (4-neighbor)</option>
+                  <option value="laplacian8">Laplacian (8-neighbor)</option>
+                  <option value="highPass">High Pass</option>
+                  <option value="emboss">Emboss</option>
+                  <option value="sobelX">Sobel X</option>
+                  <option value="sobelY">Sobel Y</option>
+                  <option value="prewittX">Prewitt X</option>
+                  <option value="prewittY">Prewitt Y</option>
+                  <option value="scharrX">Scharr X</option>
+                  <option value="scharrY">Scharr Y</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="padding">Padding Mode</label>
+                <select id="padding" class="sys-select">
+                  <option value="zero">Zero Padding</option>
+                  <option value="clamp">Clamp Edges</option>
+                </select>
+              </div>
+
+              <div class="separator"></div>
+
+              <div class="field">
+                <label>Kernel Matrix (3x3)</label>
+                <div id="kernelGrid" class="kernel-grid">
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="1" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                  <input class="sys-number" type="number" step="any" value="0" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="divisor">Divisor</label>
+                <input id="divisor" class="sys-number mono" type="number" step="any" value="1" />
+              </div>
+
+              <div class="field">
+                <label for="offset">Offset</label>
+                <input id="offset" class="sys-number mono" type="number" step="any" value="0" />
+              </div>
+
+              <div class="button-row">
+                <button id="applyBtn" class="sys-btn" type="button">Refresh Preview</button>
+                <button id="clearBtn" class="sys-btn" type="button">Clear</button>
+              </div>
+
+              <div id="status" class="status">Status: Waiting for image.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="window">
+          <div class="titlebar">Kernel Explanation <small>What this filter highlights</small></div>
+          <div class="window-content">
+            <div id="kernelInsight" class="insight">
+              Load an image and choose a kernel to see feature-level interpretation.
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="stack">
+        <section class="window">
+          <div class="titlebar">Preview Panel <small><span id="imgInfo" class="mono"></span></small></div>
+          <div class="window-content">
+            <div class="triple-grid">
+              <div>
+                <div class="label">Input (Grayscale)</div>
+                <div class="canvas-box"><canvas id="originalCanvas"></canvas></div>
+              </div>
+              <div>
+                <div class="label">Output (Kernel Applied)</div>
+                <div class="canvas-box"><canvas id="outputCanvas"></canvas></div>
+              </div>
+              <div>
+                <div class="label">Difference Heatmap |Output-Input|</div>
+                <div class="canvas-box"><canvas id="diffCanvas"></canvas></div>
+              </div>
+            </div>
+            <div class="footnote">Bright pixels in the heatmap indicate stronger local change caused by the selected kernel.</div>
+          </div>
+        </section>
+
+        <section class="window">
+          <div class="titlebar">Split View Slider <small>Left: Input / Right: Output</small></div>
+          <div class="window-content">
+            <div class="split-controls">
+              <input id="splitSlider" class="sys-range" type="range" min="0" max="100" step="1" value="50" />
+              <div class="mono">Split: <span id="splitValue">50</span>%</div>
+            </div>
+            <div class="canvas-box">
+              <canvas id="splitCanvas"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="window">
+          <div class="titlebar">Histogram Analysis <small>Feature emphasis across filters</small></div>
+          <div class="window-content">
+            <div class="hist-grid">
+              <div>
+                <div class="label">Input Histogram</div>
+                <div class="canvas-box"><canvas id="inputHistCanvas" height="140"></canvas></div>
+              </div>
+              <div>
+                <div class="label">Output Histogram</div>
+                <div class="canvas-box"><canvas id="outputHistCanvas" height="140"></canvas></div>
+              </div>
+              <div>
+                <div class="label">Overlay (Input vs Output)</div>
+                <div class="canvas-box"><canvas id="overlayHistCanvas" height="140"></canvas></div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <div class="metric">Input Mean: <span id="inMean" class="mono">-</span></div>
+              <div class="metric">Output Mean: <span id="outMean" class="mono">-</span></div>
+              <div class="metric">Contrast Change (StdDev): <span id="contrastDelta" class="mono">-</span></div>
+            </div>
+            <div class="footnote">
+              Blur kernels usually narrow the histogram (smoother image), while edge/high-pass kernels push mass toward dark background + bright edge responses.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const presetEl = document.getElementById('preset');
+    const applyBtn = document.getElementById('applyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const kernelInputs = Array.from(document.querySelectorAll('#kernelGrid input'));
+    const divisorEl = document.getElementById('divisor');
+    const offsetEl = document.getElementById('offset');
+    const paddingEl = document.getElementById('padding');
+    const statusEl = document.getElementById('status');
+    const imgInfoEl = document.getElementById('imgInfo');
+    const kernelInsightEl = document.getElementById('kernelInsight');
+
+    const splitSlider = document.getElementById('splitSlider');
+    const splitValueEl = document.getElementById('splitValue');
+
+    const originalCanvas = document.getElementById('originalCanvas');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const diffCanvas = document.getElementById('diffCanvas');
+    const splitCanvas = document.getElementById('splitCanvas');
+
+    const inputHistCanvas = document.getElementById('inputHistCanvas');
+    const outputHistCanvas = document.getElementById('outputHistCanvas');
+    const overlayHistCanvas = document.getElementById('overlayHistCanvas');
+
+    const inMeanEl = document.getElementById('inMean');
+    const outMeanEl = document.getElementById('outMean');
+    const contrastDeltaEl = document.getElementById('contrastDelta');
+
+    const octx = originalCanvas.getContext('2d');
+    const xctx = outputCanvas.getContext('2d');
+    const dctx = diffCanvas.getContext('2d');
+    const sctx = splitCanvas.getContext('2d');
+
+    const presets = {
+      identity:     { k: [0,0,0, 0,1,0, 0,0,0], d: 1, o: 0, name: "Identity" },
+      boxBlur:      { k: [1,1,1, 1,1,1, 1,1,1], d: 9, o: 0, name: "Box Blur" },
+      gaussian:     { k: [1,2,1, 2,4,2, 1,2,1], d: 16, o: 0, name: "Gaussian Blur" },
+      motionH:      { k: [0,0,0, 1,1,1, 0,0,0], d: 3, o: 0, name: "Motion Blur Horizontal" },
+      motionV:      { k: [0,1,0, 0,1,0, 0,1,0], d: 3, o: 0, name: "Motion Blur Vertical" },
+      diagBlur:     { k: [1,0,0, 0,1,0, 0,0,1], d: 3, o: 0, name: "Diagonal Blur" },
+      sharpen:      { k: [0,-1,0, -1,5,-1, 0,-1,0], d: 1, o: 0, name: "Sharpen" },
+      strongSharpen:{ k: [-1,-1,-1, -1,9,-1, -1,-1,-1], d: 1, o: 0, name: "Strong Sharpen" },
+      unsharpLite:  { k: [-1,-1,-1, -1,13,-1, -1,-1,-1], d: 5, o: 0, name: "Unsharp Lite" },
+      edge4:        { k: [0,1,0, 1,-4,1, 0,1,0], d: 1, o: 128, name: "Edge Detect 4-neighbor" },
+      laplacian8:   { k: [-1,-1,-1, -1,8,-1, -1,-1,-1], d: 1, o: 128, name: "Laplacian 8-neighbor" },
+      highPass:     { k: [-1,-2,-1, -2,12,-2, -1,-2,-1], d: 1, o: 0, name: "High Pass" },
+      emboss:       { k: [-2,-1,0, -1,1,1, 0,1,2], d: 1, o: 128, name: "Emboss" },
+      sobelX:       { k: [-1,0,1, -2,0,2, -1,0,1], d: 1, o: 128, name: "Sobel X" },
+      sobelY:       { k: [-1,-2,-1, 0,0,0, 1,2,1], d: 1, o: 128, name: "Sobel Y" },
+      prewittX:     { k: [-1,0,1, -1,0,1, -1,0,1], d: 1, o: 128, name: "Prewitt X" },
+      prewittY:     { k: [-1,-1,-1, 0,0,0, 1,1,1], d: 1, o: 128, name: "Prewitt Y" },
+      scharrX:      { k: [-3,0,3, -10,0,10, -3,0,3], d: 1, o: 128, name: "Scharr X" },
+      scharrY:      { k: [-3,-10,-3, 0,0,0, 3,10,3], d: 1, o: 128, name: "Scharr Y" }
+    };
+
+    const explanations = {
+      identity: "Preserves all features. Histogram stays almost unchanged. Useful as a baseline.",
+      boxBlur: "Uniform smoothing. Reduces fine textures and noise. Histogram tends to compress toward midtones.",
+      gaussian: "Weighted smoothing (center-focused), usually more natural than box blur. Softens detail while preserving broad structures.",
+      motionH: "Smears features horizontally. Vertical edges become less distinct; horizontal streaking appears.",
+      motionV: "Smears features vertically. Horizontal edges soften more than vertical structures.",
+      diagBlur: "A directional blur along the main diagonal. Useful for showing orientation-sensitive smoothing.",
+      sharpen: "Boosts local contrast around edges. Fine details pop; histogram tails often get stronger.",
+      strongSharpen: "Aggressive edge/texture boost. Can produce halos and clipped highlights/shadows.",
+      unsharpLite: "Balanced detail enhancement. Highlights boundaries while keeping smoother areas less affected.",
+      edge4: "Detects rapid intensity changes in 4-neighborhood. Flat regions dark; transitions become bright/dark around midpoint offset.",
+      laplacian8: "More isotropic edge detector than 4-neighbor variant; catches diagonal transitions strongly.",
+      highPass: "Suppresses low-frequency content and emphasizes abrupt changes. Great for texture and edges.",
+      emboss: "Creates pseudo-3D relief by directional intensity shift; highlights orientation-specific edges.",
+      sobelX: "Highlights vertical edges (changes across x). Great for columns, object sides, vertical boundaries.",
+      sobelY: "Highlights horizontal edges (changes across y). Great for horizons, rows, and top/bottom boundaries.",
+      prewittX: "Like Sobel X but with simpler weights; cleaner and slightly less center-biased.",
+      prewittY: "Like Sobel Y with simpler gradient estimate.",
+      scharrX: "High-accuracy vertical edge emphasis (x-gradient), often stronger than Sobel.",
+      scharrY: "High-accuracy horizontal edge emphasis (y-gradient), often stronger than Sobel."
+    };
+
+    let state = {
+      width: 0,
+      height: 0,
+      gray: null,
+      outGray: null
+    };
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function setStatus(msg) { statusEl.textContent = "Status: " + msg; }
+
+    function getKernel() { return kernelInputs.map(i => Number(i.value || 0)); }
+    function setKernel(values) { for (let i = 0; i < 9; i++) kernelInputs[i].value = values[i]; }
+
+    function applyPreset(name) {
+      if (name === 'custom') return;
+      const p = presets[name];
+      if (!p) return;
+      setKernel(p.k);
+      divisorEl.value = p.d;
+      offsetEl.value = p.o;
+    }
+
+    function readImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed.")); };
+        img.src = url;
+      });
+    }
+
+    function drawImageAndBuildGray(img) {
+      const maxSide = 760;
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+
+      originalCanvas.width = w; originalCanvas.height = h;
+      outputCanvas.width = w; outputCanvas.height = h;
+      diffCanvas.width = w; diffCanvas.height = h;
+      splitCanvas.width = w; splitCanvas.height = h;
+
+      octx.clearRect(0, 0, w, h);
+      octx.drawImage(img, 0, 0, w, h);
+
+      const imgData = octx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const gray = new Float32Array(w * h);
+
+      for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+        const r = d[p], g = d[p + 1], b = d[p + 2];
+        const y = 0.299 * r + 0.587 * g + 0.114 * b;
+        gray[i] = y;
+        d[p] = y; d[p + 1] = y; d[p + 2] = y; d[p + 3] = 255;
+      }
+
+      octx.putImageData(imgData, 0, 0);
+      state = { width: w, height: h, gray, outGray: null };
+      imgInfoEl.textContent = w + "x" + h;
+    }
+
+    function convolveFullImage(gray, w, h, kernel, divisor, offset, padding) {
+      const out = new Float32Array(w * h);
+      const div = divisor === 0 ? 1 : divisor;
+
+      function at(x, y) {
+        if (padding === 'clamp') {
+          x = clamp(x, 0, w - 1);
+          y = clamp(y, 0, h - 1);
+          return gray[y * w + x];
+        }
+        if (x < 0 || y < 0 || x >= w || y >= h) return 0;
+        return gray[y * w + x];
+      }
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let sum = 0;
+          let i = 0;
+          for (let ky = -1; ky <= 1; ky++) {
+            for (let kx = -1; kx <= 1; kx++, i++) {
+              sum += at(x + kx, y + ky) * kernel[i];
+            }
+          }
+          out[y * w + x] = clamp(sum / div + offset, 0, 255);
+        }
+      }
+      return out;
+    }
+
+    function drawGrayToCanvas(gray, w, h, ctx, canvas) {
+      const imgData = ctx.createImageData(w, h);
+      const d = imgData.data;
+      for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+        const v = clamp(Math.round(gray[i]), 0, 255);
+        d[p] = v; d[p + 1] = v; d[p + 2] = v; d[p + 3] = 255;
+      }
+      canvas.width = w; canvas.height = h;
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function buildDifference(inputGray, outGray) {
+      const diff = new Float32Array(inputGray.length);
+      for (let i = 0; i < diff.length; i++) diff[i] = Math.abs(outGray[i] - inputGray[i]);
+      return diff;
+    }
+
+    function drawSplitView(inputGray, outGray, w, h, percent) {
+      const cut = Math.floor((percent / 100) * w);
+      const imgData = sctx.createImageData(w, h);
+      const d = imgData.data;
+
+      for (let y = 0; y < h; y++) {
+        const row = y * w;
+        for (let x = 0; x < w; x++) {
+          const i = row + x;
+          const v = x < cut ? inputGray[i] : outGray[i];
+          const p = i * 4;
+          const c = clamp(Math.round(v), 0, 255);
+          d[p] = c; d[p + 1] = c; d[p + 2] = c; d[p + 3] = 255;
+        }
+      }
+
+      splitCanvas.width = w; splitCanvas.height = h;
+      sctx.putImageData(imgData, 0, 0);
+
+      sctx.beginPath();
+      sctx.moveTo(cut + 0.5, 0);
+      sctx.lineTo(cut + 0.5, h);
+      sctx.strokeStyle = "#ff0000";
+      sctx.lineWidth = 1;
+      sctx.stroke();
+    }
+
+    function makeHistogram(gray, bins = 64) {
+      const hist = new Array(bins).fill(0);
+      const step = 256 / bins;
+      for (let i = 0; i < gray.length; i++) {
+        const b = Math.min(bins - 1, Math.floor(gray[i] / step));
+        hist[b]++;
+      }
+      return hist;
+    }
+
+    function calcMeanStd(gray) {
+      let sum = 0;
+      for (let i = 0; i < gray.length; i++) sum += gray[i];
+      const mean = sum / gray.length;
+      let varSum = 0;
+      for (let i = 0; i < gray.length; i++) {
+        const d = gray[i] - mean;
+        varSum += d * d;
+      }
+      const std = Math.sqrt(varSum / gray.length);
+      return { mean, std };
+    }
+
+    function drawSingleHistogram(canvas, hist, color) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth || 320;
+      const h = canvas.height = canvas.getAttribute('height') ? Number(canvas.getAttribute('height')) : 140;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+
+      const maxVal = Math.max(...hist, 1);
+      const pad = 8;
+      const gw = w - pad * 2;
+      const gh = h - pad * 2;
+      const bw = gw / hist.length;
+
+      ctx.strokeStyle = "#666";
+      ctx.strokeRect(pad, pad, gw, gh);
+
+      ctx.fillStyle = color;
+      for (let i = 0; i < hist.length; i++) {
+        const barH = (hist[i] / maxVal) * (gh - 2);
+        const x = pad + i * bw;
+        const y = pad + gh - barH;
+        ctx.fillRect(x, y, Math.max(1, bw - 1), barH);
+      }
+    }
+
+    function drawOverlayHistogram(canvas, h1, h2) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth || 320;
+      const h = canvas.height = canvas.getAttribute('height') ? Number(canvas.getAttribute('height')) : 140;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+
+      const maxVal = Math.max(Math.max(...h1), Math.max(...h2), 1);
+      const pad = 8;
+      const gw = w - pad * 2;
+      const gh = h - pad * 2;
+      const step = gw / (h1.length - 1);
+
+      ctx.strokeStyle = "#666";
+      ctx.strokeRect(pad, pad, gw, gh);
+
+      function drawLine(hist, color) {
+        ctx.beginPath();
+        for (let i = 0; i < hist.length; i++) {
+          const x = pad + i * step;
+          const y = pad + gh - (hist[i] / maxVal) * (gh - 2);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+
+      drawLine(h1, "#1f4fb2"); // input
+      drawLine(h2, "#1f9d55"); // output
+
+      ctx.fillStyle = "#1f4fb2";
+      ctx.fillRect(pad + 4, pad + 4, 10, 6);
+      ctx.fillStyle = "#1f9d55";
+      ctx.fillRect(pad + 70, pad + 4, 10, 6);
+      ctx.fillStyle = "#111";
+      ctx.font = "11px Tahoma";
+      ctx.fillText("Input", pad + 18, pad + 10);
+      ctx.fillText("Output", pad + 84, pad + 10);
+    }
+
+    function updateKernelExplanation(name, kernel, divisor, offset) {
+      const presetText = explanations[name] || "Custom kernel: inspect heatmap + histogram shifts to understand emphasized features.";
+      const matrix = `
+        <div class="mono">
+          [${kernel[0]}, ${kernel[1]}, ${kernel[2]}]<br />
+          [${kernel[3]}, ${kernel[4]}, ${kernel[5]}]<br />
+          [${kernel[6]}, ${kernel[7]}, ${kernel[8]}]
+        </div>
+      `;
+      kernelInsightEl.innerHTML = `
+        <h4>${presets[name]?.name || "Custom Kernel"}</h4>
+        <div><strong>Behavior:</strong> ${presetText}</div>
+        <div style="margin-top:6px;"><strong>Matrix:</strong> ${matrix}</div>
+        <ul>
+          <li><strong>Divisor:</strong> ${divisor} &nbsp; <strong>Offset:</strong> ${offset}</li>
+          <li><strong>How to read split view:</strong> move slider to inspect where changes are strongest.</li>
+          <li><strong>How to read heatmap:</strong> brighter zones = larger local response to the kernel.</li>
+        </ul>
+      `;
+    }
+
+    function runPipeline() {
+      if (!state.gray) {
+        setStatus("No image loaded.");
+        return;
+      }
+
+      const kernel = getKernel();
+      const divisor = Number(divisorEl.value || 1);
+      const offset = Number(offsetEl.value || 0);
+      const padding = paddingEl.value;
+
+      const outGray = convolveFullImage(state.gray, state.width, state.height, kernel, divisor, offset, padding);
+      const diffGray = buildDifference(state.gray, outGray);
+
+      drawGrayToCanvas(outGray, state.width, state.height, xctx, outputCanvas);
+      drawGrayToCanvas(diffGray, state.width, state.height, dctx, diffCanvas);
+      drawSplitView(state.gray, outGray, state.width, state.height, Number(splitSlider.value));
+
+      const inHist = makeHistogram(state.gray, 64);
+      const outHist = makeHistogram(outGray, 64);
+
+      drawSingleHistogram(inputHistCanvas, inHist, "#1f4fb2");
+      drawSingleHistogram(outputHistCanvas, outHist, "#1f9d55");
+      drawOverlayHistogram(overlayHistCanvas, inHist, outHist);
+
+      const inStats = calcMeanStd(state.gray);
+      const outStats = calcMeanStd(outGray);
+      inMeanEl.textContent = inStats.mean.toFixed(2);
+      outMeanEl.textContent = outStats.mean.toFixed(2);
+
+      const deltaStd = outStats.std - inStats.std;
+      const sign = deltaStd >= 0 ? "+" : "";
+      contrastDeltaEl.textContent = sign + deltaStd.toFixed(2);
+
+      state.outGray = outGray;
+      updateKernelExplanation(presetEl.value, kernel, divisor, offset);
+
+      setStatus("Preview refreshed. Padding: " + padding + ".");
+    }
+
+    function clearAll() {
+      imageInput.value = "";
+      state = { width: 0, height: 0, gray: null, outGray: null };
+
+      [originalCanvas, outputCanvas, diffCanvas, splitCanvas, inputHistCanvas, outputHistCanvas, overlayHistCanvas].forEach(c => {
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+        c.width = 0; c.height = 0;
+      });
+
+      imgInfoEl.textContent = "";
+      inMeanEl.textContent = "-";
+      outMeanEl.textContent = "-";
+      contrastDeltaEl.textContent = "-";
+      kernelInsightEl.textContent = "Load an image and choose a kernel to see feature-level interpretation.";
+      setStatus("Cleared.");
+    }
+
+    imageInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        setStatus("Loading image...");
+        const img = await readImageFile(file);
+        drawImageAndBuildGray(img);
+        setStatus("Image loaded. Ready.");
+        runPipeline();
+      } catch (err) {
+        console.error(err);
+        setStatus("Error reading image.");
+      }
+    });
+
+    presetEl.addEventListener('change', () => {
+      applyPreset(presetEl.value);
+      runPipeline();
+    });
+
+    paddingEl.addEventListener('change', runPipeline);
+    applyBtn.addEventListener('click', runPipeline);
+    clearBtn.addEventListener('click', clearAll);
+
+    splitSlider.addEventListener('input', () => {
+      splitValueEl.textContent = splitSlider.value;
+      if (state.gray && state.outGray) {
+        drawSplitView(state.gray, state.outGray, state.width, state.height, Number(splitSlider.value));
+      }
+    });
+
+    kernelInputs.forEach(inp => {
+      inp.addEventListener('input', () => {
+        presetEl.value = 'custom';
+        runPipeline();
+      });
+    });
+
+    divisorEl.addEventListener('input', () => { presetEl.value = 'custom'; runPipeline(); });
+    offsetEl.addEventListener('input', () => { presetEl.value = 'custom'; runPipeline(); });
+
+    applyPreset('identity');
+    updateKernelExplanation('identity', presets.identity.k, presets.identity.d, presets.identity.o);
+  </script>
+</body>
+</html>
